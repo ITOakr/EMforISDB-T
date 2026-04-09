@@ -37,7 +37,7 @@ struct SimulationParameters
     }
 
     // シンボル番号 l, キャリア番号 k を入力とし、それが SP かどうかを判定する
-    bool isScatteredPilot(int l, int k) {
+    bool isScatteredPilot(int l, int k) const {
         // ISDB-T モード1 の SP 配置規則
         // 12キャリアおき、かつ4シンボル周期で3キャリアずつずれる
         return (k % 12 == 3 * (l % 4));

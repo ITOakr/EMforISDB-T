@@ -16,6 +16,7 @@ public:
     {
         EstimatorParameters est_params_;
         // リサイズ
+        H_initial_.resize(params_.K_);
         H_true_.resize(params_.L_, params_.K_);
         H_est_.resize(params_.L_, params_.K_);
         txData_.resize(params_.L_, params_.K_);
@@ -651,6 +652,7 @@ private:
     Eigen::MatrixXcd X_;
     Eigen::MatrixXcd X_l;
     Eigen::MatrixXcd R_;
+    Eigen::VectorXcd H_initial_;
     Eigen::MatrixXcd H_est_;
     Eigen::MatrixXcd H_true_;
     Eigen::VectorXd xPro;
@@ -715,6 +717,41 @@ private:
         for (int i = 0; i < params_.NUMBER_OF_SYMBOLS; i++) {
             grayNum_[i] = grayCode(i);
         }
+    }
+
+    // ISDB-Tの初期推定（時間方向：0次補完，周波数方向：１次補完）
+    void estInitialH() {
+        H_initial_.setZero();
+        for (int l = 0; l < 4; l++) {
+            for (int k = 0; k < params_.K_; k++) {
+                if (params_.isScatteredPilot(l, k)) {
+                    H_initial_(k) = Y_(l, k) / X_(l, k);
+                } else {
+                    H_initial_(k) = 0.0;
+                }
+            }
+        }
+        // 周波数方向の補完
+        interpolateFrequency(H_initial_);
+    }
+
+    void interpolateFrequency(const Eigen::VectorXcd& H_sparse) {
+        H_initial_.resize(params_.K_);
+        
+        // 3キャリアごとにループを回す
+        for (int k = 0; k < params_.K_ - 3; k += 3) {
+            // もし両端に推定値がある場合
+            if (std::abs(H_sparse(k)) > 0 && std::abs(H_sparse(k + 3)) > 0) {
+                H_initial_(k) = H_sparse(k);
+                
+                // 線形補間
+                std::complex<double> diff = (H_sparse(k + 3) - H_sparse(k)) / 3.0;
+                H_initial_(k + 1) = H_sparse(k) + diff;
+                H_initial_(k + 2) = H_sparse(k) + diff * 2.0;
+            }
+        }
+        // 最後の端（1404番など）の処理
+        H_initial_(params_.K_ - 1) = H_sparse(params_.K_ - 1);
     }
 
     // パイロットシンボルからｈの初期値を得る
