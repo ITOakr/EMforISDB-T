@@ -7,13 +7,13 @@
 // シミュレーションのパラメータをまとめた構造体
 struct SimulationParameters
 {
-    int K_ = 52;                          // サブキャリア数 K52
-    int L_ = 11;                          // 1フレームのシンボル数 L
+    int K_ = 1405;                          // サブキャリア数 MODE1
+    int L_ = 204;                          // 1フレームのシンボル数 L
     const int Q_ = 16;                           // 伝送路のインパルス応答のパス数 Q
-    const double T_ = 3.2 * std::pow(10, -6);   // 有効シンボル長 T
-    const double Tgi_ = 0.8 * std::pow(10, -6); // ガードインターバル長 Tgi
+    const double T_ = 252 * std::pow(10, -6);    // 有効シンボル長 T
+    const double Tgi_ = 31.5 * std::pow(10, -6); // ガードインターバル長(1/8) Tgi
     const double Ts_ = T_ + Tgi_;               // シンボル全体の長さ
-    const int NUMBER_OF_FFT = 64;               // FFTポイント数(IEEE802.11a)
+    const int NUMBER_OF_FFT = 2048;               // FFTポイント数
     const int NUMBER_OF_PILOT = 1;              // パイロットシンボル個数
     int NUMBER_OF_BIT;                          // 変調方式のビット数 (入力で設定)
     int NUMBER_OF_SYMBOLS;                      // シンボル数 (2^NUMBER_OF_BIT)
@@ -35,6 +35,15 @@ struct SimulationParameters
         }
         return W;
     }
+
+    // シンボル番号 l, キャリア番号 k を入力とし、それが SP かどうかを判定する
+    bool isScatteredPilot(int l, int k) {
+        // ISDB-T モード1 の SP 配置規則
+        // 12キャリアおき、かつ4シンボル周期で3キャリアずつずれる
+        return (k % 12 == 3 * (l % 4));
+    }
 };
+
+// (k % 12 == 3 * (l % 4))
 
 #endif /* PARAMETERS_H */
