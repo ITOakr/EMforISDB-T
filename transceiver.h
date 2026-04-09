@@ -639,6 +639,20 @@ public:
         return h_l;
     }
 
+    // H_initial_ をターミナルに出力して確認するための関数
+    void debugPrintInitialH()
+    {
+        // 内部で定義した初期推定関数を呼び出す
+        estInitialH();
+        
+        // std::cout << "========== H_initial_ Output ==========" << std::endl;
+        // for (int k = 0; k < params_.K_; k++)
+        // {
+        //     std::cout << "H_initial_(" << k << ") = " << H_initial_(k) << std::endl;
+        // }
+        // std::cout << "=======================================" << std::endl;
+    }
+
 private:
     const SimulationParameters &params_;
     const Eigen::MatrixXcd &W_est_;
@@ -726,11 +740,15 @@ private:
             for (int k = 0; k < params_.K_; k++) {
                 if (params_.isScatteredPilot(l, k)) {
                     H_initial_(k) = Y_(l, k) / X_(l, k);
-                } else {
-                    H_initial_(k) = 0.0;
                 }
             }
         }
+        std::cout << "========== H_initial_ Output ==========" << std::endl;
+        for (int k = 0; k < params_.K_; k++)
+        {
+            std::cout << "H_initial_(" << k << ") = " << H_initial_(k) << std::endl;
+        }
+        std::cout << "=======================================" << std::endl;
         // 周波数方向の補完
         interpolateFrequency(H_initial_);
     }

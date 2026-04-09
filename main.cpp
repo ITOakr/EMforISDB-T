@@ -114,6 +114,7 @@ int main()
 	std::cout << "27: Impulse Response (|h(q)|) vs Path Index q (Fixed l)" << std::endl;
 	std::cout << "28: Export Estimated Impulse Response (l=0, Q=16) to CSV" << std::endl;
 	std::cout << "29: MSE vs Frame Length L Sweep (fixed Eb/N0 & Doppler)" << std::endl;
+	std::cout << "30: Print Initial H (H_initial_) to Terminal" << std::endl;
 	std::cout << "--------------------------------------------------------------------" << std::endl;
 	std::cin >> mode_select;
 
@@ -868,6 +869,24 @@ int main()
 		std::chrono::duration<double> elapsed_total = end_total - start_total;
 		std::cout << "Total Simulation Time: " << elapsed_total.count() << " seconds." << std::endl;
 		std::cout << "Results saved to: " << fileName << std::endl;
+	}
+	else if (mode_select == 30)
+	{
+		// --- モード30: H_initial_ をターミナルに出力する ---
+		double dopplerFrequency;
+		std::cout << "Enter normalized Doppler f_d*T_s: ";
+		std::cin >> dopplerFrequency;
+
+		int fixedEbN0dB;
+		std::cout << "Enter Eb/N0 [dB]: ";
+		std::cin >> fixedEbN0dB;
+
+        // パラメータをシミュレータにセット
+		sim.setDopplerFrequency(dopplerFrequency);
+		sim.setNoiseSD(fixedEbN0dB);
+
+        // H_initial_ を計算・出力する関数の呼び出し
+		sim.runPrintInitialH();
 	}
 	else
 	{

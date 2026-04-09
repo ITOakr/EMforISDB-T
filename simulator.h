@@ -778,6 +778,24 @@ void saveEstimatedImpulseResponseToCSV(std::ofstream& ofs, double fd_Ts) {
     }
 }
 
+/**
+ * [Mode 30用] 1試行だけ通信を行い、H_initial_ をターミナルに出力する
+ */
+void runPrintInitialH()
+{
+    std::cout << "Running a single trial to calculate H_initial_..." << std::endl;
+    
+    // 1. 送信信号生成
+    transceiver_.setX_();
+    // 2. 通信路生成 (fd_Ts_ を使用)
+    channel_.generateFrequencyResponse(fd_Ts_);
+    // 3. 受信信号生成
+    transceiver_.setY_(channel_.getH(), noiseSD_);
+    
+    // 4. 初期チャネル推定とターミナルへの出力
+    transceiver_.debugPrintInitialH();
+}
+
 private:
     SimulationParameters params_;
     Eigen::MatrixXcd W_master_;
