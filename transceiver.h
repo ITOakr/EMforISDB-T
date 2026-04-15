@@ -135,6 +135,30 @@ public:
     }
 
     /**
+     * @brief 先頭4シンボル(l=0~3)における推定値と真値のMSEを計算する
+     * @param H_true 真のチャネル応答行列
+     */
+    double getMSE_First4Symbols(const Eigen::MatrixXcd& H_true) {
+        double squaredError = 0.0;
+        int K = params_.K_;
+        int L_target = 4; // 先頭4シンボル
+        long long count = 0;
+
+        for (int l = 0; l < L_target; ++l) {
+            for (int k = 0; k < K; ++k) {
+                if (!params_.isScatteredPilot(l, k)) {
+                    // パイロットシンボルは評価対象外
+                    // (推定値 - 真値)のノルムの2乗を累積
+                    squaredError += std::norm(H_initial_(k) - H_true(l, k));
+                    count++;
+                }
+            }
+        }
+        // 試行ごとの平均（4シンボル × 全サブキャリア数）
+        return squaredError / (double)count;
+    }
+
+    /**
      * 推定された雑音分散を取得する
      * @return 推定された雑音分散 noiseVariance_ の値
      */
@@ -653,6 +677,10 @@ public:
         // std::cout << "=======================================" << std::endl;
     }
 
+    void InitialEstimation() {
+        estInitialH();
+    }
+
 private:
     const SimulationParameters &params_;
     const Eigen::MatrixXcd &W_est_;
@@ -743,12 +771,6 @@ private:
                 }
             }
         }
-        std::cout << "========== H_initial_ Output ==========" << std::endl;
-        for (int k = 0; k < params_.K_; k++)
-        {
-            std::cout << "H_initial_(" << k << ") = " << H_initial_(k) << std::endl;
-        }
-        std::cout << "=======================================" << std::endl;
         // 周波数方向の補完
         interpolateFrequency(H_initial_);
     }

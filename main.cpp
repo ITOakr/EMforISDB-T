@@ -27,7 +27,7 @@ static const double dopplerStep = 0.0002;
 // ファイル
 std::string fileName;       // ファイル名
 std::ofstream ofs;        // 出力ファイル  
-const std::string outputDir = "C:/Users/Akira Ito/code2025/results/Sim_20260204~/";
+const std::string outputDir = "C:/Users/Akira Ito/code2026/result/ISDB-T/";
 
 // BER
 double ber;
@@ -115,6 +115,7 @@ int main()
 	std::cout << "28: Export Estimated Impulse Response (l=0, Q=16) to CSV" << std::endl;
 	std::cout << "29: MSE vs Frame Length L Sweep (fixed Eb/N0 & Doppler)" << std::endl;
 	std::cout << "30: Print Initial H (H_initial_) to Terminal" << std::endl;
+	std::cout << "31: MSE of First 4 Symbols (via estInitialH) vs Eb/N0" << std::endl;
 	std::cout << "--------------------------------------------------------------------" << std::endl;
 	std::cin >> mode_select;
 
@@ -887,6 +888,27 @@ int main()
 
         // H_initial_ を計算・出力する関数の呼び出し
 		sim.runPrintInitialH();
+	}
+	else if (mode_select == 31)
+	{
+		double dopplerFrequency;
+		std::cout << "Enter normalized Doppler f_d*T_s: ";
+		std::cin >> dopplerFrequency;
+
+		fileName = outputDir + timeStr + "_" + modulationName + "_InitialH_MSE_vs_EbN0.csv";
+		ofs.open(fileName);
+		ofs << "EbN0dB,MSE" << std::endl;
+
+		for (int EbN0dB = EbN0dBmin; EbN0dB <= EbN0dBmax; EbN0dB += EbN0dBstp) {
+			sim.setDopplerFrequency(dopplerFrequency);
+			sim.setNoiseSD(EbN0dB);
+			
+			double mse = sim.getMSE_InitialH_Simulation();
+			
+			std::cout << "-----------" << std::endl;
+			std::cout << "EbN0dB = " << EbN0dB << ", MSE = " << mse << std::endl;
+			ofs << EbN0dB << "," << mse << std::endl;
+		}
 	}
 	else
 	{

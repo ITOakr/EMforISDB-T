@@ -796,6 +796,48 @@ void runPrintInitialH()
     transceiver_.debugPrintInitialH();
 }
 
+/**
+ * [Mode 31用] estInitialHによる先頭4シンボルのMSEシミュレーション
+ */
+double getMSE_InitialH_Simulation()
+{
+    double totalMSE = 0.0;
+    std::atomic<int> completed_trials(0);
+
+    #pragma omp parallel reduction(+:totalMSE)
+    {
+        SimulationParameters local_params = params_;
+        local_params.seed += omp_get_thread_num(); 
+        Channel local_channel(local_params, W_master_);
+        Transceiver local_transceiver(local_params, W_master_);
+
+        #pragma omp for schedule(dynamic)
+        for (int tri = 0; tri < NUMBER_OF_TRIAL; tri++)
+        {
+            local_transceiver.setX_();
+            local_channel.generateFrequencyResponse(fd_Ts_);
+            local_transceiver.setY_(local_channel.getH(), noiseSD_);
+            
+            // 1. 推定関数を実行
+            local_transceiver.InitialEstimation();
+            
+            // 2. 真値と比較してMSEを計算 (local_channel.getH()が真値)
+            totalMSE += local_transceiver.getMSE_First4Symbols(local_channel.getH());
+
+            // 進捗表示 (10%ごと)
+            int current_count = ++completed_trials;
+            if (NUMBER_OF_TRIAL >= 10 && (current_count % (NUMBER_OF_TRIAL / 10) == 0)) {
+                #pragma omp critical
+                {
+                    std::cout << "\rProgress: " << (int)((double)current_count / NUMBER_OF_TRIAL * 100.0) << "%" << std::flush;
+                }
+            }
+        }
+    }
+    std::cout << std::endl;
+    return totalMSE / (double)NUMBER_OF_TRIAL;
+}
+
 private:
     SimulationParameters params_;
     Eigen::MatrixXcd W_master_;
@@ -808,5 +850,7 @@ private:
 
     double last_avg_iterations_ = 0.0;
 };
+
+
 
 #endif /* SIMULATOR_H */
