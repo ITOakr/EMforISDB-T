@@ -116,6 +116,7 @@ int main()
 	std::cout << "29: MSE vs Frame Length L Sweep (fixed Eb/N0 & Doppler)" << std::endl;
 	std::cout << "30: Print Initial H (H_initial_) to Terminal" << std::endl;
 	std::cout << "31: MSE of First 4 Symbols (via estInitialH) vs Eb/N0" << std::endl;
+	std::cout << "32: MSE of First 4 Symbols (via Pilot LS Fixed l=0) vs Eb/N0" << std::endl;
 	std::cout << "--------------------------------------------------------------------" << std::endl;
 	std::cin >> mode_select;
 
@@ -908,6 +909,27 @@ int main()
 			std::cout << "-----------" << std::endl;
 			std::cout << "EbN0dB = " << EbN0dB << ", MSE = " << mse << std::endl;
 			ofs << EbN0dB << "," << mse << std::endl;
+		}
+	}
+	else if (mode_select == 32)
+	{
+		double dopplerFrequency;
+		std::cout << "Enter normalized Doppler f_d*T_s: ";
+		std::cin >> dopplerFrequency;
+
+		fileName = outputDir + timeStr + "_" + modulationName + "_PilotLS_Fixed_MSE_vs_EbN0.csv";
+		ofs.open(fileName);
+		ofs << "EbN0dB,MSE" << std::endl;
+
+		for (int EbN0dB = EbN0dBmin; EbN0dB <= EbN0dBmax; EbN0dB += EbN0dBstp) {
+			sim.setDopplerFrequency(dopplerFrequency);
+			sim.setNoiseSD(EbN0dB);
+			
+			double mse_val = sim.getMSE_PilotLS_Fixed_Simulation();
+			
+			std::cout << "-----------" << std::endl;
+			std::cout << "EbN0dB = " << EbN0dB << ", MSE = " << mse_val << std::endl;
+			ofs << EbN0dB << "," << mse_val << std::endl;
 		}
 	}
 	else

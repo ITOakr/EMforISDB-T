@@ -677,9 +677,15 @@ public:
         // std::cout << "=======================================" << std::endl;
     }
 
-    void InitialEstimation() {
+    void InitialHEstimation() {
         estInitialH();
     }
+
+    void InitialImpulseEstimation() {
+        estimateImpulseResponseFromPilots_Fixed_l0();
+    }
+
+
 
 private:
     const SimulationParameters &params_;
@@ -793,6 +799,80 @@ private:
         // 最後の端（1404番など）の処理
         H_initial_(params_.K_ - 1) = H_sparse(params_.K_ - 1);
     }
+
+    void estimateImpulseResponseFromPilots(int l) {
+        // 1. パイロットキャリアのインデックスをリストアップ
+        std::vector<int> p_idx;
+        for (int k = 0; k < params_.K_; ++k) {
+            if (params_.isScatteredPilot(l, k)) {
+                p_idx.push_back(k);
+            }
+        }
+
+        int Kp = p_idx.size(); // 抽出されたパイロット数
+        int Q = params_.Q_;    // 推定するパス数 (16)
+
+        // 2. 小さなサイズの行列・ベクトルを用意
+        Eigen::VectorXcd Yp(Kp);
+        Eigen::MatrixXcd Wp(Kp, Q);
+        Eigen::DiagonalMatrix<std::complex<double>, Eigen::Dynamic> Xp(Kp);
+
+        for (int i = 0; i < Kp; ++i) {
+            int k = p_idx[i];
+            Yp(i) = Y_(l, k);           // 受信信号の抽出
+            Xp.diagonal()(i) = X_(l, k); // 送信パイロットの抽出
+            Wp.row(i) = W_est_.row(k);   // DFT行列の該当行を抽出
+        }
+
+        // 3. LS 推定式の計算
+        // A = Xp * Wp
+        Eigen::MatrixXcd A = Xp * Wp;
+        
+        // h_l = (A^H * A)^-1 * A^H * Yp
+        h_l = (A.adjoint() * A).inverse() * A.adjoint() * Yp;
+    }
+
+    /**
+     * [Mode 32用] l=0 のパイロットのみからインパルス応答を推定し、
+     * 固定の周波数応答 H_initial_ を算出する
+     */
+    void estimateImpulseResponseFromPilots_Fixed_l0() {
+        int l_ref = 0; // 1番目のシンボルのみを使用
+        std::vector<int> p_idx;
+        
+        // 1. パイロットインデックスの抽出 (l=0)
+        for (int k = 0; k < params_.K_; ++k) {
+            if (params_.isScatteredPilot(l_ref, k)) {
+                p_idx.push_back(k);
+            }
+        }
+
+        int Kp = p_idx.size();
+        int Q = params_.Q_;
+
+        // 2. パイロットキャリアのみの行列・ベクトルを構築
+        Eigen::MatrixXcd Wp(Kp, Q);
+        Eigen::DiagonalMatrix<std::complex<double>, Eigen::Dynamic> Xp(Kp);
+        Eigen::VectorXcd Yp(Kp);
+
+        for (int i = 0; i < Kp; ++i) {
+            int k = p_idx[i];
+            Yp(i) = Y_(l_ref, k);
+            Xp.diagonal()(i) = X_(l_ref, k);
+            Wp.row(i) = W_est_.row(k);
+        }
+
+        // 3. LS推定: h = ( (Xp*Wp)^H * (Xp*Wp) )^-1 * (Xp*Wp)^H * Yp
+        Eigen::MatrixXcd A = Xp * Wp;
+        h_l = (A.adjoint() * A).inverse() * A.adjoint() * Yp;
+
+        // 4. インパルス応答から全サブキャリアの周波数応答を復元し、固定値として保存
+        H_initial_ = W_est_ * h_l;
+    }
+
+    // MSE計算には、既存の getMSE_First4Symbols(H_true) がそのまま利用可能です。
+    // この関数は H_initial_ と H_true を比較するため、
+    // 上記関数で H_initial_ を更新しておけば要件通りの計算が行われます。
 
     // パイロットシンボルからｈの初期値を得る
     void set_initial_params_by_pilot()

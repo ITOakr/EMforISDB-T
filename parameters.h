@@ -9,7 +9,7 @@ struct SimulationParameters
 {
     int K_ = 1405;                          // サブキャリア数 MODE1
     int L_ = 204;                          // 1フレームのシンボル数 L
-    const int Q_ = 16;                           // 伝送路のインパルス応答のパス数 Q
+    const int Q_ = 2;                           // 伝送路のインパルス応答のパス数 Q
     const double T_ = 252 * std::pow(10, -6);    // 有効シンボル長 T
     const double Tgi_ = 31.5 * std::pow(10, -6); // ガードインターバル長(1/8) Tgi
     const double Ts_ = T_ + Tgi_;               // シンボル全体の長さ
@@ -20,7 +20,7 @@ struct SimulationParameters
     int seed = 100;
 
     // パスの有無を制御するマスク
-    std::vector<int> pathMask = {1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    std::vector<int> pathMask = {1, 1};
 
     // DFT行列を生成する共通ロジック
     static Eigen::MatrixXcd generateW(int K, int Q, int FFT_size) {
